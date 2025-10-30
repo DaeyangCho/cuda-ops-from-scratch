@@ -9,44 +9,44 @@
 
 __global__ void matrix_multiplication_kernel(const float* A, const float* B,
                                              float* C, int M, int N, int K) {
-    int r = blockIdx.y * blockDim.y + threadIdx.y;
-    int c = blockIdx.x * blockDim.x + threadIdx.x;
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (r < M && c < K) {
+    if (x < M && y < N) {
         float v = 0.0;
-        for (int i = 0; i < N; i++) {
-            v += A[(r * N) + i] * B[(i * K) + c];
+        for (int i = 0; i < K; i++) {
+            v += A[(x * K) + i] * B[(i * N) + y];
         }
-        C[(r * K) + c] = v;
+        C[(x * N) + y] = v;
     }
 }
 
 int main() {
-    // Matrix dimensions: A(M×N), B(N×K), C(M×K)
+    // Matrix dimensions: A(M×K), B(K×N), C(M×N)
     const int M = 1024;
     const int N = 1024;
     const int K = 1024;
 
     // Host init
-    std::vector<float> ha(M * N), hb(N * K), hc(M * K);
+    std::vector<float> ha(M * K), hb(K * N), hc(M * N);
     std::mt19937 rng(42);
     std::uniform_real_distribution<float> dist(0.f, 1.f);
-    for (int i = 0; i < M * N; ++i) ha[i] = dist(rng);
-    for (int i = 0; i < N * K; ++i) hb[i] = dist(rng);
+    for (int i = 0; i < M * K; ++i) ha[i] = dist(rng);
+    for (int i = 0; i < K * N; ++i) hb[i] = dist(rng);
 
     // Device alloc
     float *da, *db, *dc;
-    CUDA_CHECK(cudaMalloc(&da, M * N * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(&db, N * K * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(&dc, M * K * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&da, M * K * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&db, K * N * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&dc, M * N * sizeof(float)));
 
-    CUDA_CHECK(cudaMemcpy(da, ha.data(), M * N * sizeof(float),
+    CUDA_CHECK(cudaMemcpy(da, ha.data(), M * K * sizeof(float),
                           cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(db, hb.data(), N * K * sizeof(float),
+    CUDA_CHECK(cudaMemcpy(db, hb.data(), K * N * sizeof(float),
                           cudaMemcpyHostToDevice));
 
     dim3 block(16, 16);
-    dim3 grid((K + block.x - 1) / block.x, (M + block.y - 1) / block.y);
+    dim3 grid((M + block.x - 1) / block.x, (N + block.y - 1) / block.y);
 
     // Warm-up
     matrix_multiplication_kernel<<<grid, block>>>(da, db, dc, M, N, K);
@@ -59,20 +59,20 @@ int main() {
     CUDA_CHECK(cudaDeviceSynchronize());
     float ms = t.stop_ms() / 100.0f;
 
-    CUDA_CHECK(cudaMemcpy(hc.data(), dc, M * K * sizeof(float),
+    CUDA_CHECK(cudaMemcpy(hc.data(), dc, M * N * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
     // Verify
     double max_err = 0.0;
     for (int i = 0; i < M; ++i) {
-        for (int j = 0; j < K; ++j) {
+        for (int j = 0; j < N; ++j) {
             float expected = 0.0f;
-            for (int k = 0; k < N; ++k) {
-                expected += ha[i * N + k] * hb[k * K + j];
+            for (int k = 0; k < K; ++k) {
+                expected += ha[i * M + k] * hb[k * N + j];
             }
             max_err = std::max(
                 max_err,
-                static_cast<double>(std::fabs(hc[i * K + j] - expected)));
+                static_cast<double>(std::fabs(hc[i * N + j] - expected)));
         }
     }
 

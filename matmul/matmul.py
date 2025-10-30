@@ -3,9 +3,9 @@ import torch
 
 
 def bench(M=1024, N=1024, K=1024, iters=100):
-    # Create random matrices on GPU: A(M×N), B(N×K)
-    A = torch.rand((M, N), device='cuda')
-    B = torch.rand((N, K), device='cuda')
+    # Create random matrices on GPU: A(M×K), B(KxN)
+    A = torch.rand((M, K), device='cuda')
+    B = torch.rand((K, N), device='cuda')
 
     # Warm-up
     for _ in range(10):
