@@ -80,7 +80,7 @@ int main() {
     }
 
     printf(
-        "cuda naive matrix_multiply: M=%d, N=%d, K=%d, time=%.4f ms, "
+        "cuda 2d gmem matrix_multiply: M=%d, N=%d, K=%d, time=%.4f ms, "
         "max_err=%.3g\n",
         M, N, K, ms, max_err);
 

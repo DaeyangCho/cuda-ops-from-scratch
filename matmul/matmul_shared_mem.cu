@@ -9,20 +9,37 @@
 
 #define BLOCK_SIZE 32
 
-// Global memory coalesced matrix multiplication kernel
-// Traverses consecutive columns of matrix B using 1D thread indexing
 __global__ void matrix_multiplication_kernel(const float* A, const float* B,
                                              float* C, int M, int N, int K) {
-    int x = blockIdx.x * BLOCK_SIZE + threadIdx.x / BLOCK_SIZE;
-    int y = blockIdx.y * BLOCK_SIZE + threadIdx.x % BLOCK_SIZE;
+    const int cRow = blockIdx.x;
+    const int cCol = blockIdx.y;
 
-    if (x < M && y < N) {
-        float v = 0.0;
-        for (int i = 0; i < K; i++) {
-            v += A[(x * K) + i] * B[(i * N) + y];
+    __shared__ float As[BLOCK_SIZE * BLOCK_SIZE];
+    __shared__ float Bs[BLOCK_SIZE * BLOCK_SIZE];
+
+    const int threadCol = threadIdx.x % BLOCK_SIZE;
+    const int threadRow = threadIdx.x / BLOCK_SIZE;
+
+    A += cRow * BLOCK_SIZE * K;                      // row=cRow, col=0
+    B += cCol * BLOCK_SIZE;                          // row=0, col=cCol
+    C += cRow * BLOCK_SIZE * N + cCol * BLOCK_SIZE;  // row=cRow, col=cCol
+
+    float tmp = 0.0;
+    for (int bkIdx = 0; bkIdx < K; bkIdx += BLOCK_SIZE) {
+        As[threadRow * BLOCK_SIZE + threadCol] = A[threadRow * K + threadCol];
+        Bs[threadRow * BLOCK_SIZE + threadCol] = B[threadRow * N + threadCol];
+
+        __syncthreads();
+        A += BLOCK_SIZE;
+        B += BLOCK_SIZE * N;
+
+        for (int dotIdx = 0; dotIdx < BLOCK_SIZE; ++dotIdx) {
+            tmp += As[threadRow * BLOCK_SIZE + dotIdx] *
+                   Bs[dotIdx * BLOCK_SIZE + threadCol];
         }
-        C[(x * N) + y] = v;
+        __syncthreads();
     }
+    C[threadRow * N + threadCol] = tmp;
 }
 
 int main() {
@@ -82,7 +99,7 @@ int main() {
     }
 
     printf(
-        "cuda 1d gmem matrix_multiply: M=%d, N=%d, K=%d, time=%.4f ms, "
+        "cuda shared mem matrix_multiply: M=%d, N=%d, K=%d, time=%.4f ms, "
         "max_err=%.3g\n",
         M, N, K, ms, max_err);
 
