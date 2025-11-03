@@ -2,7 +2,7 @@ import time
 import torch
 
 
-def bench(M=1024, N=1024, K=1024, iters=100):
+def bench(M=4096, N=4096, K=4096, iters=100):
     # Create random matrices on GPU: A(M×K), B(KxN)
     A = torch.rand((M, K), device='cuda')
     B = torch.rand((K, N), device='cuda')

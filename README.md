@@ -10,7 +10,22 @@ to explore GPU parallelism, memory hierarchy, and optimization techniques.
 | Operation | Highlights | Comparison |
 |------------|-------------|-------------|
 | **Vector Addition** |  | CUDA vs PyTorch |
+| **Matrix Multiplication** | From Naive to Optimal | CDUA vs PyTorch |
+---
 
+## Optimize Matrix Multiplication
+
+| Kernel | GFLOPS | Performace gain |
+|------------|-------------|-------------|
+| Naive          | 295.2   | 2.5% |
+| GMEM Coalesing | 1069.2  | 9.1% |
+| SMEM Coalesing | 1483.0  | 12.6% |
+| 1D Tiling      | 4222.8  | 35.8% |
+| 2D Tiling      | 7710.3  | 65.3% |
+| Vectorize      | 8988.7  | 76.2% |
+| PyTorch        | 11801.6 | 100.0% |
+| cuBLAS         | 11801.6 | 98.0% |
+| cuBLAS TF32    | 11801.6 | 142.8% |
 ---
 
 ## Test Environment
