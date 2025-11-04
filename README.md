@@ -23,6 +23,7 @@ to explore GPU parallelism, memory hierarchy, and optimization techniques.
 | 1D Tiling      | 4222.8  | 35.8% |
 | 2D Tiling      | 7710.3  | 65.3% |
 | Vectorize      | 8988.7  | 76.2% |
+| Warp Tiling    | 9597.7  | 81.3% |
 | PyTorch        | 11801.6 | 100.0% |
 | cuBLAS         | 11801.6 | 98.0% |
 | cuBLAS TF32    | 11801.6 | 142.8% |
